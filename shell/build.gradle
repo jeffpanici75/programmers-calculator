@@ -1,0 +1,48 @@
+plugins {
+    id 'java'
+    id "idea"
+    id "application"
+}
+
+group 'io.nybbles'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_13
+}
+
+application {
+    applicationName = "prog-calc"
+    mainClassName = "io.nybbles.progcalc.shell.Program"
+
+    applicationDefaultJvmArgs = ['--enable-preview', '-Xdock:name=Programmers\' Calculator']
+}
+
+dependencies {
+    implementation project(":common")
+    implementation project(":vm")
+    implementation project(":compiler")
+
+    implementation group: 'com.github.trystan', name: 'AsciiPanel', version: 'master-SNAPSHOT'
+    implementation group: 'commons-cli', name: 'commons-cli', version: '1.4'
+    implementation group: 'com.diogonunes', name: 'JCDP', version: '2.0.3.1'
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+}
+
+tasks.withType(JavaCompile).each {
+    it.options.compilerArgs.add('--enable-preview')
+}
+
+tasks.run {
+}
+
+tasks.test {
+    jvmArgs('--enable-preview')
+}

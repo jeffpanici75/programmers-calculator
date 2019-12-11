@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+}
+
+group 'io.nybbles'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_13
+}
+
+dependencies {
+    implementation project(":common")
+    implementation project(":vm")
+
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+}
+
+tasks.withType(JavaCompile).each {
+    it.options.compilerArgs.add('--enable-preview')
+}
+
+tasks.test {
+    jvmArgs('--enable-preview')
+}
