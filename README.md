@@ -46,6 +46,7 @@ intrinsic functions that allow pushing to and popping from the stack.
 Symbols are supported.  Any expression can be assigned to a symbol:
 
 `(empty:0) > PI := 3.14159; R := 16.1297; C := (PI * R) ^ 2`
+
 `(empty:0) > ? C`
 
 Will show the result of the expression evaluation for the symbol `C`.  The `F2` key will show you
