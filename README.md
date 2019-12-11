@@ -7,8 +7,8 @@ I don't normally use Java, but I'm impressed with how well it runs. There are ma
 I could improve and enhance.  Nothing is ever done, only in a state of being perfected.
 
 <div align="center">
-    <a href="https://raw.github.com/jeffpanici75/programmers-calculator/assets/prog-calc-example.png">
-        <img src="/assets/prog-calc-example.png" width="25%" height="25%" />
+    <a href="https://raw.github.com/jeffpanici75/programmers-calculator/master/assets/prog-calc-example.png">
+        <img src="/assets/prog-calc-example.png" width="50%" height="50%" />
     </a>
 </div>
 
