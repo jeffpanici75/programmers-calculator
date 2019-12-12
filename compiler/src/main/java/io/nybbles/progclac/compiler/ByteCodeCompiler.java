@@ -65,6 +65,26 @@ public class ByteCodeCompiler {
                 emitter.exit();
                 return result;
             }
+            case Command -> {
+                var result = new VisitResult(true);
+                var command = (CommandAstNode) node;
+                var exprResult = visitNode(r, emitter, command.getExpression());
+                if (!exprResult.success) {
+                    result.success = false;
+                    return result;
+                }
+                result.target = _registerAllocator.allocateRegister(exprResult.target.getType());
+                switch (command.getCommandType()) {
+                    case Print -> emitter
+                            .move(result.target, exprResult.target)
+                            .push(exprResult.target)
+                            .push(exprResult.target.getType().getNumericType().ordinal())
+                            .push(1)
+                            .trap(io.nybbles.progcalc.vm.Constants.Traps.PRINT);
+                }
+                _registerAllocator.releaseRegister(exprResult.target);
+                return result;
+            }
             case Statement -> {
                 var statement = (StatementAstNode) node;
                 return visitNode(r, emitter, statement.getExpression());
@@ -130,14 +150,6 @@ public class ByteCodeCompiler {
                 }
                 result.target = _registerAllocator.allocateRegister(lhsResult.target.getType());
                 switch (unaryOp.getOperatorType()) {
-                    case Print     -> {
-                        emitter
-                                .move(result.target, lhsResult.target)
-                                .push(lhsResult.target)
-                                .push(lhsResult.target.getType().getNumericType().ordinal())
-                                .push(1)
-                                .trap(io.nybbles.progcalc.vm.Constants.Traps.PRINT);
-                    }
                     case Negate    -> emitter.neg(result.target, lhsResult.target);
                     case BinaryNot -> emitter.not(result.target, lhsResult.target);
                 }

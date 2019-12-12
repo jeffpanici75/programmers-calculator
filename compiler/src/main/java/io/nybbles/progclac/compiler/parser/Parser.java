@@ -253,6 +253,12 @@ public class Parser {
         return s;
     }
 
+    private ProductionRule statement(TokenType tokenType, Std std) {
+        var s = terminal(tokenType);
+        s.setStd(std);
+        return s;
+    }
+
     private ProductionRule infixRight(TokenType tokenType, int bp) {
         return infixRight(tokenType, bp, null);
     }
@@ -285,23 +291,51 @@ public class Parser {
         return s;
     }
 
+    private StatementAstNode parseStatement(Result r) {
+        if (!hasMore())
+            return null;
+
+        var currentRule = rule();
+        var currentToken = token();
+
+        var std = currentRule.getStd();
+        if (std != null) {
+            var context = new Context();
+            context.r = r;
+            context.parser = this;
+            context.rule = currentRule;
+            context.token = currentToken;
+            if (!advance(r))
+                return null;
+            return std.parse(context);
+        }
+
+        var expression = expression(r, 0);
+        return new StatementAstNode(expression);
+    }
+
+    private ArrayList<StatementAstNode> parseStatements(Result r) {
+        var statements = new ArrayList<StatementAstNode>();
+        while (hasMore()) {
+            var stmt = parseStatement(r);
+            if (stmt == null)
+                break;
+            statements.add(stmt);
+            if (!peek(TokenType.Semicolon) && !hasMore())
+                break;
+            if (!advance(r, TokenType.Semicolon))
+                return null;
+        }
+        return statements;
+    }
+
     public Parser(String source, ArrayList<Token> tokens) {
         _tokens = tokens;
         _source = source;
     }
 
     public AstNode parse(Result r) {
-        var statements = new ArrayList<StatementAstNode>();
-        while (true) {
-            var expression = expression(r, 0);
-            if (expression == null)
-                break;
-            statements.add(new StatementAstNode(expression));
-            if (!hasMore())
-                break;
-            if (!advance(r, TokenType.Semicolon))
-                return null;
-        }
+        var statements = parseStatements(r);
         if (!r.isSuccess())
             return null;
         return new ProgramAstNode(statements);
@@ -315,7 +349,26 @@ public class Parser {
 
         prefix(TokenType.Minus);
         prefix(TokenType.Tilde);
-        prefix(TokenType.Question);
+
+        statement(
+                TokenType.Question,
+                (context) -> {
+                    var expr = context.parser.expression(context.r, 0);
+                    if (expr == null) {
+                        addError(
+                                context.r,
+                                "P076",
+                                "? command expected valid expression",
+                                context.token.getStart(),
+                                context.token.getEnd());
+                        return null;
+                    }
+                    var commandType = CommandType.fromTokenType(context.token.getType());
+                    return new StatementAstNode(new CommandAstNode(
+                            commandType,
+                            expr,
+                            context.token));
+                });
 
         prefix(
                 TokenType.CharacterLiteral,

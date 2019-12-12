@@ -5,6 +5,7 @@ import io.nybbles.progclac.compiler.lexer.TokenType;
 public class ProductionRule {
     private Nud _nud;
     private Led _led;
+    private Std _std;
     private int _lbp;
     private TokenType _tokenType;
 
@@ -38,5 +39,13 @@ public class ProductionRule {
 
     public TokenType getTokenType() {
         return _tokenType;
+    }
+
+    public Std getStd() {
+        return _std;
+    }
+
+    public void setStd(Std std) {
+        _std = std;
     }
 }
