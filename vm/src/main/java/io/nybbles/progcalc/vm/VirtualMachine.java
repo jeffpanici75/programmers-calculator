@@ -127,11 +127,13 @@ public class VirtualMachine {
             case NOP -> {}
             case INC -> {
                 var r0 = getRegister(op0.getRegisterName());
-                r0.getValue().add(1);
+                var value = r0.getValue();
+                r0.getValue().setNumeric(value.add(1));
             }
             case DEC -> {
                 var r0 = getRegister(op0.getRegisterName());
-                r0.getValue().sub(1);
+                var value = r0.getValue();
+                r0.getValue().setNumeric(value.sub(1));
             }
             case ADD -> {
                 var r0 = getRegister(op0.getRegisterName());

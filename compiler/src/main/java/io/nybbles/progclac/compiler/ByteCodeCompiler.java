@@ -75,6 +75,17 @@ public class ByteCodeCompiler {
                 }
                 result.target = _registerAllocator.allocateRegister(exprResult.target.getType());
                 switch (command.getCommandType()) {
+                    case Pop   -> emitter
+                            .move(result.target, exprResult.target)
+                            .trap(Constants.Traps.POP);
+                    case Push   -> emitter
+                            .move(result.target, exprResult.target)
+                            .push(exprResult.target)
+                            .push(exprResult.target.getType().getNumericType().ordinal())
+                            .trap(Constants.Traps.PUSH);
+                    case Clear -> emitter
+                            .move(result.target, exprResult.target)
+                            .trap(Constants.Traps.CLEAR_SCREEN);
                     case Print -> emitter
                             .move(result.target, exprResult.target)
                             .push(exprResult.target)

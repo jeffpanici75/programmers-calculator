@@ -47,6 +47,12 @@ public class Lexer {
         s_lexemes.insert("ROL", new Lexeme(TokenType.Rol, true));
         s_lexemes.insert("ror", new Lexeme(TokenType.Ror, true));
         s_lexemes.insert("ROR", new Lexeme(TokenType.Ror, true));
+        s_lexemes.insert("pop", new Lexeme(TokenType.Pop, true));
+        s_lexemes.insert("POP", new Lexeme(TokenType.Pop, true));
+        s_lexemes.insert("push", new Lexeme(TokenType.Push, true));
+        s_lexemes.insert("PUSH", new Lexeme(TokenType.Push, true));
+        s_lexemes.insert("clear", new Lexeme(TokenType.Clear, true));
+        s_lexemes.insert("CLEAR", new Lexeme(TokenType.Clear, true));
 
         s_lexemes.insert("true", new Lexeme(TokenType.BooleanLiteral, true));
         s_lexemes.insert("TRUE", new Lexeme(TokenType.BooleanLiteral, true));

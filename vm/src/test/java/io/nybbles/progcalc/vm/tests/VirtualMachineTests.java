@@ -36,7 +36,8 @@ public class VirtualMachineTests {
     @Test
     public void basicStackOperations() {
         assertEquals(65535, _vm.getHeapSize());
-        assertEquals(1024, _vm.getStackSize());
+        assertEquals(4096, _vm.getStackSize());
+        assertEquals(4096, _vm.getDataSize());
 
         _vm.push(10L);
         _vm.push(20L);

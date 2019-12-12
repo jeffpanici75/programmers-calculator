@@ -26,19 +26,18 @@ octal with the `@` prefix, and binary with the `%` prefix.  Numbers may also con
 
 Valid binary operators are: `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`, `||`, `&&`, `shl`, `shr`, `rol`, `ror`, `xor`
 
-Valid unary operators are: `-`, `~`, and `?`
+Valid unary operators are: `-`, and `~`
 
-The `?` operator outputs a table of base conversions and 
+Valid statement commands are: `?`
+
+The `?` command outputs a table of base conversions and 
 shows the result value sized as `byte`, `word`, `dword`, and `qword`.
 
 All values inside of the virtual machine are 64-bit (`qword`) values.
 
-When using the `?` operator, make sure to use parenthesis to ensure precedence:
+Here's an example of the `?` command:
 
-`(empty:0) > ? (-2 * $fe)`
-
-I plan to add intrinsic functions and; eventually, user-defined functions. Once available, I'll switch
-the `?` operator to a function.
+`(empty:0) > ? -2 * $fe`
 
 The `(empty:0)` prefix on the prompt is showing the top of the stack and the stack depth. I'll be adding
 intrinsic functions that allow pushing to and popping from the stack.

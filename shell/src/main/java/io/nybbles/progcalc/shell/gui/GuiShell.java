@@ -7,7 +7,9 @@ import io.nybbles.progcalc.math.NumberHelpers;
 import io.nybbles.progcalc.shell.CommandHistory;
 import io.nybbles.progcalc.shell.Constants;
 import io.nybbles.progcalc.shell.contracts.Configuration;
+import io.nybbles.progcalc.shell.contracts.DeferredTrap;
 import io.nybbles.progcalc.shell.contracts.GraphicalShell;
+import io.nybbles.progcalc.shell.contracts.TrapContext;
 import io.nybbles.progcalc.vm.*;
 import io.nybbles.progclac.compiler.ByteCodeCompiler;
 import io.nybbles.progclac.compiler.SymbolTable;
@@ -35,6 +37,12 @@ public class GuiShell extends JFrame
             new Color(0, 0, 149),
             new Color(0, 0, 98)};
 
+    private static final class TrapCapture {
+        public DeferredTrap handler;
+        public TrapContext context = new TrapContext();
+    }
+
+    private ArrayList<TrapCapture> _deferredTraps = new ArrayList<>();
     private CommandHistory _history = new CommandHistory();
     private JLayeredPane _layeredPane = new JLayeredPane();
     private StopWatch _stopWatch = new StopWatch();
@@ -56,7 +64,7 @@ public class GuiShell extends JFrame
         else {
             var tos = _vm.topOfStack();
             buffer.append("(");
-            buffer.append(NumberHelpers.hexStringForSize(tos, 64));
+            buffer.append(String.format("%016X", tos));
             buffer.append(":");
             buffer.append(_vm.getStackDepth());
             buffer.append(")");
@@ -67,6 +75,15 @@ public class GuiShell extends JFrame
         var cx = _caret.getX();
         var cy = _caret.getY();
         _caret.setLimit(new Bounds(cx, cy, _document.getDisplayWidth(), cy));
+    }
+
+    private boolean processTraps(Result r) {
+        for (var capture : _deferredTraps) {
+            if (!capture.handler.execute(r, capture.context))
+                return false;
+        }
+        _deferredTraps.clear();
+        return true;
     }
 
     private void prevHistoryCommand() {
@@ -128,11 +145,16 @@ public class GuiShell extends JFrame
     }
 
     private void clearScreen() {
+        clearScreen(true);
+    }
+
+    private void clearScreen(boolean showPrompt) {
         _caret.setLimit(null);
         _document.clear();
         displayBanner();
         displayOptionsBar();
-        prompt();
+        if (showPrompt)
+            prompt();
     }
 
     private void formatDisassembly(Program program) {
@@ -228,76 +250,83 @@ public class GuiShell extends JFrame
         return _vm.getRegister(targetRegister);
     }
 
+    private void endHandleExpression() {
+        if (_quit) {
+            dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+        } else {
+            prompt();
+        }
+    }
+
     private void handleExpression() {
         var r = new Result();
+
+        var source = _document.getString(_caret.getLimit());
+        _caret.setLimit(null);
+        _document.carriageReturn();
+
+        if (source.isEmpty()) {
+            endHandleExpression();
+            return;
+        }
+
+        _history.addCommand(source);
+
         _stopWatch.start();
-        try {
-            var source = _document.getString(_caret.getLimit());
-            _caret.setLimit(null);
-            _document.carriageReturn();
+        var targetRegister = executeExpression(r, source);
+        if (!r.isSuccess() || targetRegister == null) {
+            formatResult(r);
+            endHandleExpression();
+            return;
+        }
 
-            if (source.isEmpty())
-                return;
+        var elapsedTime = _stopWatch.stop();
 
-            _history.addCommand(source);
-            var targetRegister = executeExpression(r, source);
-            if (!r.isSuccess()) {
-                formatResult(r);
-                return;
-            }
+        _document.carriageReturn();
 
-            if (targetRegister == null)
-                return;
+        var type = targetRegister.getType().getNumericType();
+        var typeName = switch (type) {
+            case Integer -> "U64";
+            case Float   -> "F64";
+        };
+        var value = switch (type) {
+            case Integer -> targetRegister.getValue().asInteger();
+            case Float   -> Double.doubleToRawLongBits(targetRegister.getValue().asFloat());
+        };
 
-            _document.carriageReturn();
+        formatGradientTop();
 
-            var type = targetRegister.getType().getNumericType();
-            var typeName = switch (type) {
-                case Integer -> "U64";
-                case Float   -> "F64";
-            };
-            var value = switch (type) {
-                case Integer -> targetRegister.getValue().asInteger();
-                case Float   -> Double.doubleToRawLongBits(targetRegister.getValue().asFloat());
-            };
-
-            formatGradientTop();
-
-            switch (targetRegister.getType()) {
-                case U0, U64 -> _document.writeAtCaret(
-                        padString(String.format("   result value: %d:%s", value, typeName), 130),
-                        s_gradientColors[2],
-                        Color.CYAN);
-                case F64     -> _document.writeAtCaret(
-                        padString(
-                                String.format("   result value: %f:%s", targetRegister.getValue().asFloat(), typeName),
-                                130),
-                        s_gradientColors[2],
-                        Color.CYAN);
-            }
-        } finally {
-            var elapsedTime = _stopWatch.stop();
-            String timeValue = "";
-            var milliSeconds = elapsedTime.toMillis();
-            if (milliSeconds > 0) {
-                timeValue = String.format("%dms", milliSeconds);
-            } else {
-                var nanoSeconds = elapsedTime.toNanos();
-                timeValue = String.format("%dus", nanoSeconds / 1000L);
-            }
-
-            _document.writeAtCaret(
-                    padString(String.format(" execution time: %s", timeValue), 130),
+        switch (targetRegister.getType()) {
+            case U0, U64 -> _document.writeAtCaret(
+                    padString(String.format("   result value: %d:%s", value, typeName), 130),
                     s_gradientColors[2],
                     Color.CYAN);
-            formatGradientBottom();
-
-            if (_quit) {
-                dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
-            } else {
-                prompt();
-            }
+            case F64     -> _document.writeAtCaret(
+                    padString(
+                            String.format("   result value: %f:%s", targetRegister.getValue().asFloat(), typeName),
+                            130),
+                    s_gradientColors[2],
+                    Color.CYAN);
         }
+
+        String timeValue = "";
+        var milliSeconds = elapsedTime.toMillis();
+        if (milliSeconds > 0) {
+            timeValue = String.format("%dms", milliSeconds);
+        } else {
+            var nanoSeconds = elapsedTime.toNanos();
+            timeValue = String.format("%dus", nanoSeconds / 1000L);
+        }
+
+        _document.writeAtCaret(
+                padString(String.format(" execution time: %s", timeValue), 130),
+                s_gradientColors[2],
+                Color.CYAN);
+        formatGradientBottom();
+
+        processTraps(r);
+
+        endHandleExpression();
     }
 
     private void formatResult(Result result) {
@@ -367,29 +396,91 @@ public class GuiShell extends JFrame
                     return true;
                 });
         _vm.addTrapHandler(
+                Constants.Traps.POP,
+                (result, vm) -> {
+                    if (vm.isStackEmpty()) {
+                        result.addError(
+                                "T001",
+                                "POP trap expects arguments on stack.");
+                        return false;
+                    }
+                    var capture = new TrapCapture();
+                    capture.context.trapId = Constants.Traps.POP;
+                    capture.context.values.add(new IntegerNumeric(vm.pop()));
+                    capture.handler = (handlerResult, context) -> {
+                        formatOutput("U64", context.values.get(0).asInteger());
+                        return true;
+                    };
+                    _deferredTraps.add(capture);
+                    return true;
+                });
+        _vm.addTrapHandler(
+                Constants.Traps.PUSH,
+                (result, vm) -> {
+                    var capture = new TrapCapture();
+                    capture.context.trapId = Constants.Traps.PUSH;
+                    var numericTypes = NumericType.values();
+                    var type = numericTypes[(int) vm.pop()];
+                    var value = switch (type) {
+                        case Integer -> vm.pop();
+                        case Float   -> Double.doubleToRawLongBits(vm.popDouble());
+                    };
+                    capture.context.values.add(new IntegerNumeric(value));
+                    capture.handler = (handlerResult, context) -> {
+                        vm.push(context.values.get(0));
+                        return true;
+                    };
+                    _deferredTraps.add(capture);
+                    return true;
+                });
+        _vm.addTrapHandler(
                 Constants.Traps.CLEAR_SCREEN,
                 (result, vm) -> {
-                    clearScreen();
+                    var capture = new TrapCapture();
+                    capture.context.trapId = Constants.Traps.CLEAR_SCREEN;
+                    capture.handler = (handlerResult, context) -> {
+                        clearScreen(false);
+                        return true;
+                    };
+                    _deferredTraps.add(capture);
                     return true;
                 });
         _vm.addTrapHandler(
                 io.nybbles.progcalc.vm.Constants.Traps.PRINT,
                 (result, vm) -> {
+                    if (vm.isStackEmpty()) {
+                        result.addError(
+                                "T001",
+                                "PRINT trap expects arguments on stack.");
+                        return false;
+                    }
+
+                    var capture = new TrapCapture();
+                    capture.context.trapId = io.nybbles.progcalc.vm.Constants.Traps.PRINT;
+
                     var numericTypes = NumericType.values();
                     var count = vm.pop();
                     for (var i = 0; i < count; i++) {
                         var type = numericTypes[(int) vm.pop()];
-                        var typeName = switch (type) {
-                            case Integer -> "U64";
-                            case Float   -> "F64";
-                        };
                         var value = switch (type) {
                             case Integer -> vm.pop();
                             case Float   -> Double.doubleToRawLongBits(vm.popDouble());
                         };
-                        formatOutput(typeName, value);
+                        capture.context.values.add(new IntegerNumeric(value));
                     }
 
+                    capture.handler = (handleResult, context) -> {
+                        for (var value : context.values) {
+                            var typeName = switch (value.getType()) {
+                                case Integer -> "U64";
+                                case Float   -> "F64";
+                            };
+                            formatOutput(typeName, value.asInteger());
+                        }
+                        return true;
+                    };
+
+                    _deferredTraps.add(capture);
                     return true;
                 });
 
@@ -534,7 +625,7 @@ public class GuiShell extends JFrame
                     Color.CYAN);
         } else {
             _document.writeAtCaret(
-                    padString(" ADDR            QWORD", 130),
+                    padString(" ADDR              QWORD", 130),
                     s_gradientColors[2],
                     Color.CYAN);
             var sp = _vm.getRegister(RegisterName.SP).getValue().asInteger();

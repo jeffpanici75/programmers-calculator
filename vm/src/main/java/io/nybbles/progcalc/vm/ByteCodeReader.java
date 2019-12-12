@@ -15,6 +15,7 @@ public class ByteCodeReader {
         s_registerNames = RegisterName.values();
     }
 
+    // XXX: review register operand encoding to prevent extra padding step
     private Instruction readInstruction() {
         var operandList = new ArrayList<Operand>();
         var opCode = s_opCodes[_buffer.get()];
@@ -54,7 +55,7 @@ public class ByteCodeReader {
         _buffer.position(_startAddress);
         while (_startAddress < _endAddress) {
             instructions[i++] = readInstruction();
-            _startAddress += 16;
+            _startAddress += Constants.Instruction.ENCODED_SIZE;
         }
         return new Program(instructions);
     }

@@ -15,6 +15,33 @@ public class Parser {
     private String _source;
     private int _index;
 
+    private static FloatSize narrowType(double value) {
+        if (value < -3.4e+38 || value > 3.4e+38) {
+            return FloatSize.QWORD;
+        } else if (value >= -3.4e+38 && value <= 3.4e+38) {
+            return FloatSize.DWORD;
+        } else {
+            return FloatSize.INVALID;
+        }
+    }
+    private static IntegerSize narrowType(long value) {
+        var highestBit = 0;
+        for (var i = 0; i < Long.SIZE; ++i) {
+            var mask = 1L << i;
+            if ((value & mask) == mask)
+                highestBit = i;
+        }
+
+        var sizeInBytes = (highestBit / 8) + 1;
+
+        return switch (sizeInBytes) {
+            case 1 -> IntegerSize.BYTE;
+            case 2 -> IntegerSize.WORD;
+            case 4 -> IntegerSize.DWORD;
+            default -> IntegerSize.QWORD;
+        };
+    }
+
     private Token token() {
         return _tokens.get(_index);
     }
@@ -351,6 +378,56 @@ public class Parser {
         prefix(TokenType.Tilde);
 
         statement(
+                TokenType.Pop,
+                (context) -> {
+                    if (!context.parser.peek(TokenType.Semicolon)
+                    &&  !context.parser.peek(TokenType.EndOfInput)) {
+                        addError(
+                                context.r,
+                                "P077",
+                                "unexpected expression after pop command",
+                                context.token.getStart(),
+                                context.token.getEnd());
+                        return null;
+                    }
+                    var commandType = CommandType.fromTokenType(context.token.getType());
+                    return new StatementAstNode(new CommandAstNode(
+                            commandType,
+                            new IntegerLiteralAstNode(1L, 10, false, IntegerSize.BYTE, null),
+                            context.token));
+                });
+
+        statement(
+                TokenType.Push,
+                (context) -> {
+                    var commandType = CommandType.fromTokenType(context.token.getType());
+                    return new StatementAstNode(new CommandAstNode(
+                            commandType,
+                            context.parser.expression(context.r, 0),
+                            context.token));
+                });
+
+        statement(
+                TokenType.Clear,
+                (context) -> {
+                    if (!context.parser.peek(TokenType.Semicolon)
+                            &&  !context.parser.peek(TokenType.EndOfInput)) {
+                        addError(
+                                context.r,
+                                "P077",
+                                "unexpected expression after pop command",
+                                context.token.getStart(),
+                                context.token.getEnd());
+                        return null;
+                    }
+                    var commandType = CommandType.fromTokenType(context.token.getType());
+                    return new StatementAstNode(new CommandAstNode(
+                            commandType,
+                            new IntegerLiteralAstNode(1L, 10, false, IntegerSize.BYTE, null),
+                            context.token));
+                });
+
+        statement(
                 TokenType.Question,
                 (context) -> {
                     var expr = context.parser.expression(context.r, 0);
@@ -449,16 +526,18 @@ public class Parser {
                 var radix = context.token.getRadix();
                 try {
                     if (context.token.isFractional()) {
+                        var value = Double.parseDouble(slice);
                         return new DoubleLiteralAstNode(
-                                Double.parseDouble(slice),
-                                FloatSize.QWORD,
+                                value,
+                                narrowType(value),
                                 context.token);
                     } else {
+                        var value = Long.parseLong(slice, radix);
                         return new IntegerLiteralAstNode(
-                                Long.parseLong(slice, radix),
+                                value,
                                 radix,
                                 false,
-                                IntegerSize.QWORD,
+                                narrowType(value),
                                 context.token);
                     }
                 } catch (NumberFormatException e) {

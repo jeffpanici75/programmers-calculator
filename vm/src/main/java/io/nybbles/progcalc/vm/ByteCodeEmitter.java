@@ -74,131 +74,131 @@ public class ByteCodeEmitter {
             RegisterName op3,
             RegisterName op4) {
         var record = new EmitRecord();
-        record.address = align(_address, 16);
+        record.address = align(_address, Constants.Instruction.ENCODED_SIZE);
         record.opCode = opCode;
         record.operands.add(op1);
         record.operands.add(op2);
         record.operands.add(op3);
         record.operands.add(op4);
         _records.add(record);
-        _address += 16;
+        _address += Constants.Instruction.ENCODED_SIZE;
     }
 
     private void addEmitRecord(OperationCode opCode) {
         var record = new EmitRecord();
         record.opCode = opCode;
-        record.address = align(_address, 16);
+        record.address = align(_address, Constants.Instruction.ENCODED_SIZE);
         _records.add(record);
-        _address += 16;
+        _address += Constants.Instruction.ENCODED_SIZE;
     }
 
     private void addEmitRecord(OperationCode opCode, String label) {
         var record = new EmitRecord();
         record.opCode = opCode;
-        record.address = align(_address, 16);
+        record.address = align(_address, Constants.Instruction.ENCODED_SIZE);
         record.immediateLabel = label;
         _records.add(record);
-        _address += 16;
+        _address += Constants.Instruction.ENCODED_SIZE;
     }
 
     private void addEmitRecord(OperationCode opCode, long immediate) {
         var record = new EmitRecord();
         record.opCode = opCode;
-        record.address = align(_address, 16);
+        record.address = align(_address, Constants.Instruction.ENCODED_SIZE);
         record.integerImmediateOperand = immediate;
         _records.add(record);
-        _address += 16;
+        _address += Constants.Instruction.ENCODED_SIZE;
     }
 
     private void addEmitRecord(OperationCode opCode, double immediate) {
         var record = new EmitRecord();
         record.opCode = opCode;
-        record.address = align(_address, 16);
+        record.address = align(_address, Constants.Instruction.ENCODED_SIZE);
         record.doubleImmediateOperand = immediate;
         _records.add(record);
-        _address += 16;
+        _address += Constants.Instruction.ENCODED_SIZE;
     }
 
     private void addEmitRecord(OperationCode opCode, RegisterName op1) {
         var record = new EmitRecord();
         record.opCode = opCode;
-        record.address = align(_address, 16);
+        record.address = align(_address, Constants.Instruction.ENCODED_SIZE);
         record.operands.add(op1);
         _records.add(record);
-        _address += 16;
+        _address += Constants.Instruction.ENCODED_SIZE;
     }
 
     private void addEmitRecord(OperationCode opCode, RegisterName op1, String label) {
         var record = new EmitRecord();
         record.opCode = opCode;
-        record.address = align(_address, 16);
+        record.address = align(_address, Constants.Instruction.ENCODED_SIZE);
         record.operands.add(op1);
         record.immediateLabel = label;
         _records.add(record);
-        _address += 16;
+        _address += Constants.Instruction.ENCODED_SIZE;
     }
 
     private void addEmitRecord(OperationCode opCode, RegisterName op1, long immediate) {
         var record = new EmitRecord();
         record.opCode = opCode;
-        record.address = align(_address, 16);
+        record.address = align(_address, Constants.Instruction.ENCODED_SIZE);
         record.operands.add(op1);
         record.integerImmediateOperand = immediate;
         _records.add(record);
-        _address += 16;
+        _address += Constants.Instruction.ENCODED_SIZE;
     }
 
     private void addEmitRecord(OperationCode opCode, RegisterName op1, double immediate) {
         var record = new EmitRecord();
         record.opCode = opCode;
-        record.address = align(_address, 16);
+        record.address = align(_address, Constants.Instruction.ENCODED_SIZE);
         record.operands.add(op1);
         record.doubleImmediateOperand = immediate;
         _records.add(record);
-        _address += 16;
+        _address += Constants.Instruction.ENCODED_SIZE;
     }
 
     private void addEmitRecord(OperationCode opCode, RegisterName op1, RegisterName op2) {
         var record = new EmitRecord();
         record.opCode = opCode;
-        record.address = align(_address, 16);
+        record.address = align(_address, Constants.Instruction.ENCODED_SIZE);
         record.operands.add(op1);
         record.operands.add(op2);
         _records.add(record);
-        _address += 16;
+        _address += Constants.Instruction.ENCODED_SIZE;
     }
 
     private void addEmitRecord(OperationCode opCode, RegisterName op1, RegisterName op2, RegisterName op3) {
         var record = new EmitRecord();
         record.opCode = opCode;
-        record.address = align(_address, 16);
+        record.address = align(_address, Constants.Instruction.ENCODED_SIZE);
         record.operands.add(op1);
         record.operands.add(op2);
         record.operands.add(op3);
         _records.add(record);
-        _address += 16;
+        _address += Constants.Instruction.ENCODED_SIZE;
     }
 
     private void addEmitRecord(OperationCode opCode, RegisterName op1, RegisterName op2, long immediate) {
         var record = new EmitRecord();
         record.opCode = opCode;
-        record.address = align(_address, 16);
+        record.address = align(_address, Constants.Instruction.ENCODED_SIZE);
         record.operands.add(op1);
         record.operands.add(op2);
         record.integerImmediateOperand = immediate;
         _records.add(record);
-        _address += 16;
+        _address += Constants.Instruction.ENCODED_SIZE;
     }
 
     private void addEmitRecord(OperationCode opCode, RegisterName op1, RegisterName op2, double immediate) {
         var record = new EmitRecord();
         record.opCode = opCode;
-        record.address = align(_address, 16);
+        record.address = align(_address, Constants.Instruction.ENCODED_SIZE);
         record.operands.add(op1);
         record.operands.add(op2);
         record.doubleImmediateOperand = immediate;
         _records.add(record);
-        _address += 16;
+        _address += Constants.Instruction.ENCODED_SIZE;
     }
 
     public ByteCodeEmitter(ByteBuffer buffer, long address) {
@@ -302,7 +302,7 @@ public class ByteCodeEmitter {
 
     public ByteCodeEmitter label(String name) {
         if (!_labels.containsKey(name)) {
-            _address = align(_address, 16);
+            _address = align(_address, Constants.Instruction.ENCODED_SIZE);
             _labels.put(name, _address);
         }
         return this;
